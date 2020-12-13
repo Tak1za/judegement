@@ -32,6 +32,8 @@ type Round struct {
 	dealt          map[string]deck.Card
 	handEstimate   map[string]int
 	trump          deck.Suit
+	handCounts     map[string]int
+	winners        []string
 }
 
 // WinnerHand struct
@@ -58,6 +60,7 @@ func main() {
 
 	for i := 0; i < 52/numPlayers; i++ {
 		var round Round
+		round.number = i + 1
 		round.cardsToBeDealt = (52/numPlayers - i)
 		fmt.Println("Cards to be dealt: ", round.cardsToBeDealt)
 		round.dealCards(writer)
@@ -74,6 +77,9 @@ func main() {
 		fmt.Println("Trump for this round is: ", round.trump)
 
 		round.startRound()
+
+		round.findRoundWinners()
+		round.updateScores(writer)
 	}
 }
 
@@ -106,16 +112,15 @@ func (r *Round) dealCards(w *csv.Writer) {
 }
 
 func (r *Round) getHandEstimate(w *csv.Writer) string {
-	var handEstimate int
 	r.handEstimate = make(map[string]int, gs.Players)
-	scoringRow := (52 / gs.Players) + 1 - r.cardsToBeDealt
-	scoreData[scoringRow] = append(scoreData[scoringRow], fmt.Sprint(r.cardsToBeDealt))
+	scoreData[r.number] = append(scoreData[r.number], fmt.Sprint(r.cardsToBeDealt))
 	maxEstimate := -1
 	maxEstimatePlayer := "P0"
 	handEstimateSum := 0
 	for i := 0; i < gs.Players; i++ {
 		playerID := "P" + strconv.Itoa(i)
 		fmt.Printf("How many hands can you make %s?: ", playerID)
+		var handEstimate int
 		fmt.Scanf("%d", &handEstimate)
 
 		for handEstimate > r.cardsToBeDealt || handEstimate < 0 {
@@ -130,9 +135,9 @@ func (r *Round) getHandEstimate(w *csv.Writer) string {
 			maxEstimatePlayer = playerID
 		}
 		r.handEstimate[playerID] = handEstimate
-		scoreData[scoringRow] = append(scoreData[scoringRow], fmt.Sprint(handEstimate))
+		scoreData[r.number] = append(scoreData[r.number], fmt.Sprint(handEstimate))
 	}
-	err := w.Write(scoreData[scoringRow])
+	err := w.Write(scoreData[r.number])
 	w.Flush()
 	err = w.Error()
 	if err != nil {
@@ -144,6 +149,7 @@ func (r *Round) getHandEstimate(w *csv.Writer) string {
 
 func (r *Round) startRound() {
 	fmt.Println("Round start...")
+	r.handCounts = make(map[string]int)
 	for k := 0; k < r.cardsToBeDealt; k++ {
 		r.dealt = make(map[string]deck.Card, gs.Players)
 		for i := 0; i < gs.Players; i++ {
@@ -173,7 +179,10 @@ func (r *Round) startRound() {
 		handWinner := r.handWinner(order)
 		fmt.Println("Hand Winner: ", handWinner)
 
+		r.handCounts[handWinner.Player]++
 	}
+
+	fmt.Printf("Hand Counts: %+v\n", r.handCounts)
 }
 
 // not making use of pointer to the playerDeck for sake of clean code
@@ -197,5 +206,38 @@ func (r *Round) handWinner(order []string) WinnerHand {
 	return WinnerHand{
 		Player: winnerPlayer,
 		Hand:   winnerCard,
+	}
+}
+
+func (r *Round) findRoundWinners() {
+	r.winners = make([]string, 0)
+	for player, estimate := range r.handEstimate {
+		if estimate == r.handCounts[player] {
+			r.winners = append(r.winners, player)
+		}
+	}
+}
+
+func (r *Round) updateScores(w *csv.Writer) {
+	if len(r.winners) <= 0 {
+		for i := 0; i < gs.Players; i++ {
+			scoreData[r.number] = append(scoreData[r.number], fmt.Sprint(0))
+		}
+	} else {
+		for i := 0; i < gs.Players; i++ {
+			var updated bool = false
+			for _, winner := range r.winners {
+				winnerID := winner[1:]
+				winnerIDInt, _ := strconv.Atoi(winnerID)
+				if i == winnerIDInt {
+					updated = true
+					scoreData[r.number][i] = "1" + scoreData[r.number][i]
+					break
+				}
+			}
+			if !updated {
+				scoreData[r.number][i] = fmt.Sprint(0)
+			}
+		}
 	}
 }
