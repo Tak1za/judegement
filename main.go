@@ -121,6 +121,7 @@ func (r *Round) getHandEstimate(w *csv.Writer) string {
 			fmt.Printf("Invalid estimate. Estimate again: ")
 			fmt.Scanf("%d", &handEstimate)
 		}
+
 		if handEstimateSum += handEstimate; handEstimateSum == r.cardsToBeDealt && i == gs.Players-1 {
 			fmt.Printf("Invalid estimate. Total sum of estimations can't be equal to the total number of cards to be dealt. Estimate again: ")
 			fmt.Scanf("%d", &handEstimate)
