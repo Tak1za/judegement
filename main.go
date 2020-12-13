@@ -14,14 +14,8 @@ var scoreData [][]string
 
 // GameState struct
 type GameState struct {
-	Winner  map[string]deck.Card
+	Winner  string
 	Players int
-}
-
-// Winner struct
-type Winner struct {
-	Player string
-	Hand   deck.Card
 }
 
 // Round struct
@@ -81,6 +75,7 @@ func main() {
 		round.findRoundWinners()
 		round.updateScores(writer)
 	}
+
 }
 
 func addHeader(w *csv.Writer) {
