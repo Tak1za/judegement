@@ -75,7 +75,7 @@ func main() {
 		round.findRoundWinners()
 		round.updateScores(writer)
 	}
-
+	gs.findWinner()
 }
 
 func addHeader(w *csv.Writer) {
@@ -251,4 +251,26 @@ func (r *Round) updateScores(w *csv.Writer) {
 	if err != nil {
 		panic(err)
 	}
+}
+
+func (gs *GameState) findWinner() {
+	totalScores := make(map[string]int)
+	for i := 0; i < gs.Players; i++ {
+		for j := 1; j <= (52 / gs.Players); j++ {
+			playerID := "P" + strconv.Itoa(i)
+			score, _ := strconv.Atoi(scoreData[j][i+1])
+			totalScores[playerID] += score
+		}
+	}
+
+	maxScore := -1
+	maxScorePlayer := ""
+	for player, score := range totalScores {
+		if score > maxScore {
+			maxScore = score
+			maxScorePlayer = player
+		}
+	}
+
+	fmt.Printf("Winner is: %s, with a score of: %d\n", maxScorePlayer, maxScore)
 }
