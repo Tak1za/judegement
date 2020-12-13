@@ -214,9 +214,11 @@ func (r *Round) findRoundWinners() {
 }
 
 func (r *Round) updateScores(w *csv.Writer) {
+	fmt.Printf("Winners: %+v\n", r.winners)
 	if len(r.winners) <= 0 {
+		scoreData[r.number][0] = fmt.Sprint(r.cardsToBeDealt)
 		for i := 0; i < gs.Players; i++ {
-			scoreData[r.number] = append(scoreData[r.number], fmt.Sprint(0))
+			scoreData[r.number][i+1] = fmt.Sprint(0)
 		}
 	} else {
 		for i := 0; i < gs.Players; i++ {
@@ -226,13 +228,27 @@ func (r *Round) updateScores(w *csv.Writer) {
 				winnerIDInt, _ := strconv.Atoi(winnerID)
 				if i == winnerIDInt {
 					updated = true
-					scoreData[r.number][i] = "1" + scoreData[r.number][i]
+					scoreData[r.number][i+1] = "1" + scoreData[r.number][i+1]
 					break
 				}
 			}
 			if !updated {
-				scoreData[r.number][i] = fmt.Sprint(0)
+				scoreData[r.number][i+1] = fmt.Sprint(0)
 			}
 		}
+	}
+
+	os.Remove("./scoring.csv")
+	f, err := os.Create("./scoring.csv")
+	w = csv.NewWriter(f)
+
+	w.WriteAll(scoreData)
+	w.Flush()
+	err = w.Error()
+	if err != nil {
+		panic(err)
+	}
+	if err != nil {
+		panic(err)
 	}
 }
