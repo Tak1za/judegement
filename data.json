@@ -2,19 +2,19 @@
   "round": [
     {
       "cards": {
-          "P1": [
-            {
-              "Suit": "Hearts",
-              "Rank": "Two"
-            }
-          ],
-          "P2": [
-            {
-              "Suit": "Hearts",
-              "Rank": "Three"
-            }
-          ]
-        },
+        "P1": [
+          {
+            "Suit": "Hearts",
+            "Rank": "Two"
+          }
+        ],
+        "P2": [
+          {
+            "Suit": "Hearts",
+            "Rank": "Three"
+          }
+        ]
+      },
       "winner": {
         "player": "P2",
         "hand": {

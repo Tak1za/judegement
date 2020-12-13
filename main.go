@@ -10,7 +10,6 @@ import (
 )
 
 var gs GameState
-var numPlayers int
 var scoreData [][]string
 
 // GameState struct
@@ -49,6 +48,7 @@ func main() {
 	}
 	writer := csv.NewWriter(scoreFile)
 
+	var numPlayers int
 	fmt.Println("Please enter the number of players: ")
 	fmt.Scanf("%d", &numPlayers)
 
@@ -85,7 +85,7 @@ func main() {
 
 func addHeader(w *csv.Writer) {
 	scoreData[0] = append(scoreData[0], "Cards")
-	for i := 0; i < numPlayers; i++ {
+	for i := 0; i < gs.Players; i++ {
 		playerID := "P" + strconv.Itoa(i)
 		scoreData[0] = append(scoreData[0], playerID)
 	}
@@ -104,8 +104,8 @@ func (r *Round) dealCards(w *csv.Writer) {
 	newDeck := deck.New(deck.Shuffle)
 	r.cards = make(map[string][]deck.Card)
 	for i := 1; i <= r.cardsToBeDealt; i++ {
-		for j := i*numPlayers - numPlayers; j < i*numPlayers; j++ {
-			playerID := "P" + strconv.Itoa(j%numPlayers)
+		for j := i*gs.Players - gs.Players; j < i*gs.Players; j++ {
+			playerID := "P" + strconv.Itoa(j%gs.Players)
 			r.cards[playerID] = append(r.cards[playerID], newDeck[j])
 		}
 	}
@@ -113,10 +113,10 @@ func (r *Round) dealCards(w *csv.Writer) {
 
 func (r *Round) getHandEstimate(w *csv.Writer) {
 	var handEstimate int
-	r.handEstimate = make(map[string]int, numPlayers)
-	scoringRow := (52 / numPlayers) + 1 - r.cardsToBeDealt
+	r.handEstimate = make(map[string]int, gs.Players)
+	scoringRow := (52 / gs.Players) + 1 - r.cardsToBeDealt
 	scoreData[scoringRow] = append(scoreData[scoringRow], fmt.Sprint(r.cardsToBeDealt))
-	for i := 0; i < numPlayers; i++ {
+	for i := 0; i < gs.Players; i++ {
 		playerID := "P" + strconv.Itoa(i)
 		fmt.Printf("How many hands can you make %s?: ", playerID)
 		fmt.Scanf("%d", &handEstimate)
@@ -134,7 +134,7 @@ func (r *Round) getHandEstimate(w *csv.Writer) {
 func (r *Round) startRound() {
 	fmt.Println("Round start...")
 	r.dealt = make(map[string]deck.Card)
-	for i := 0; i < numPlayers; i++ {
+	for i := 0; i < gs.Players; i++ {
 		playerIndex := "P" + strconv.Itoa(i)
 		var cardPlayedNumber int
 		fmt.Println(playerIndex + "'s chance: ")
@@ -156,7 +156,7 @@ func (r *Round) startRound() {
 func (r *Round) dealWinner(order []string) WinnerHand {
 	winnerCard := r.dealt[order[0]]
 	winnerPlayer := order[0]
-	for i := 0; i < numPlayers-1; i++ {
+	for i := 0; i < gs.Players-1; i++ {
 		if (winnerCard.Suit == r.dealt[order[i+1]].Suit && winnerCard.Rank < r.dealt[order[i+1]].Rank) || (winnerCard.Suit != r.dealt[order[i+1]].Suit && r.dealt[order[i+1]].Suit == r.trump) {
 			winnerCard = r.dealt[order[i+1]]
 			winnerPlayer = order[i+1]
