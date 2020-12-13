@@ -14,7 +14,6 @@ var scoreData [][]string
 
 // GameState struct
 type GameState struct {
-	Winner  string
 	Players int
 }
 
