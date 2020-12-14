@@ -3,11 +3,25 @@ package main
 import (
 	"encoding/csv"
 	"fmt"
+	"log"
+	"net/http"
 	"os"
 	"strconv"
 
-	"github.com/Tak1za/go-deck"
+	deck "github.com/Tak1za/go-deck"
+	"github.com/Tak1za/judgement/pkg/manager"
+	"github.com/Tak1za/judgement/pkg/subscriber"
+	"github.com/gin-gonic/gin"
+	"github.com/gorilla/websocket"
+	uuid "github.com/satori/go.uuid"
 )
+
+var wsUpgrader = websocket.Upgrader{
+	ReadBufferSize:  1024,
+	WriteBufferSize: 1024,
+}
+
+var clientManager *manager.ClientManager
 
 var gs GameState
 var scoreData [][]string
@@ -42,6 +56,19 @@ func main() {
 	}
 	writer := csv.NewWriter(scoreFile)
 
+	r := gin.Default()
+	clientManager = manager.NewManager()
+	go clientManager.Start()
+
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+
+	r.GET("/ws/:id", wsHandler)
+	r.POST("/create", createGroupHandler)
+	_ = r.Run(":" + port)
+
 	var numPlayers int
 	fmt.Println("Please enter the number of players: ")
 	fmt.Scanf("%d", &numPlayers)
@@ -75,6 +102,34 @@ func main() {
 		round.updateScores(writer)
 	}
 	gs.findWinner()
+}
+
+func checkOrigin() func(r *http.Request) bool {
+	return func(r *http.Request) bool {
+		return true
+	}
+}
+
+func createGroupHandler(context *gin.Context) {
+	context.JSON(http.StatusOK, uuid.NewV4().String())
+}
+
+func wsHandler(context *gin.Context) {
+	wsUpgrader.CheckOrigin = checkOrigin()
+	wsUpgrader.EnableCompression = true
+	groupId := context.Param("id")
+	conn, err := wsUpgrader.Upgrade(context.Writer, context.Request, nil)
+	if err != nil {
+		log.Printf("Failed to upgrade to websocket: %+v", err)
+		return
+	}
+
+	newSubscriber := subscriber.NewSubscriber(conn, groupId)
+
+	clientManager.RegisterSubscriber(newSubscriber.Client)
+
+	go newSubscriber.Read(clientManager)
+	go newSubscriber.Write(clientManager)
 }
 
 func addHeader(w *csv.Writer) {
@@ -127,7 +182,7 @@ func (r *Round) getHandEstimate(w *csv.Writer) string {
 			fmt.Scanf("%d", &handEstimate)
 		}
 
-		// find the player with maximum hands, will be trump setter
+		// find the player with maximum hands who will be trump setter
 		if handEstimate > maxEstimate {
 			maxEstimate = handEstimate
 			maxEstimatePlayer = playerID
